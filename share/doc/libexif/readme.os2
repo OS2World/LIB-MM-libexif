@@ -1,0 +1,9 @@
+This is libexif v0.6.16 for OS/2. It is needed by the jpeg plugin of Gimp 2.2.8.
+It should be installed on the X11ROOT drive.
+
+It needs EMX and gettext.
+
+This new version fixes crashes when reading exif data from some newer digital cameras.
+
+-- 
+  giessler@biomag.uni-jena.de

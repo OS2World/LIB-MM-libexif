@@ -1,0 +1,351 @@
+diff -bruN -x configure -x ltmain.sh -x aclocal.m4 -x config.guess -x config.sub -x Makefile.in libexif-0.6.16/buildos2.sh libexif-0.6.16.os2/buildos2.sh
+--- libexif-0.6.16/buildos2.sh	Thu Jan  1 00:00:00 1970
++++ libexif-0.6.16.os2/buildos2.sh	Wed May  3 13:41:34 2008
+@@ -0,0 +1,13 @@
++#!ash.exe
++#export PKG_CONFIG_DEBUG_SPEW=1
++export ac_executable_extensions=".exe"
++export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig\;/usr/X11R6/lib/pkgconfig
++export CFLAGS="-O2 -Zmtd -Zsysv-signals -Zbin-files -D__ST_MT_ERRNO__"
++export LDFLAGS="-O2 -Zmtd -Zsysv-signals -Zbin-files -D__ST_MT_ERRNO__"
++#libtoolize --force && aclocal --force -I m4m && autoconf --force && automake --force
++#./configure --prefix=/usr --disable-static --disable-libtool-locking --disable-largefile --sysconfdir=/etc SHELL=ash.exe LIBS="-lshm -lemxfix -lsocket -lbsd -lgcc" 2>&1 |tee conf.log
++#/usr/bin/make.exe SHELL=ash.exe 2>&1 |tee make.log
++#/usr/bin/make.exe SHELL=ash.exe check 2>&1 |tee check.log
++#/usr/bin/make.exe SHELL=ash.exe install 2>&1 |tee inst.log
++#/usr/bin/make.exe SHELL=ash.exe DESTDIR=/x11install/libexif install 2>&1 |tee insttmp.log
++/usr/bin/make.exe SHELL=ash.exe distclean 2>&1 |tee make.log
+diff -bruN -x configure -x ltmain.sh -x aclocal.m4 -x config.guess -x config.sub -x Makefile.in libexif-0.6.16/config.h.in libexif-0.6.16.os2/config.h.in
+--- libexif-0.6.16/config.h.in	Tue Jun 12 15:03:44 2007
++++ libexif-0.6.16.os2/config.h.in	Wed May  3 13:39:20 2008
+@@ -7,6 +7,14 @@
+ /* The gettext domain we're using */
+ #undef GETTEXT_PACKAGE
+ 
++/* Define to 1 if you have the MacOS X function CFLocaleCopyCurrent in the
++   CoreFoundation framework. */
++#undef HAVE_CFLOCALECOPYCURRENT
++
++/* Define to 1 if you have the MacOS X function CFPreferencesCopyAppValue in
++   the CoreFoundation framework. */
++#undef HAVE_CFPREFERENCESCOPYAPPVALUE
++
+ /* Define if the GNU dcgettext() function is already present or preinstalled.
+    */
+ #undef HAVE_DCGETTEXT
+diff -bruN -x configure -x ltmain.sh -x aclocal.m4 -x config.guess -x config.sub -x Makefile.in libexif-0.6.16/configure.ac libexif-0.6.16.os2/configure.ac
+--- libexif-0.6.16/configure.ac	Tue Jun 12 15:03:20 2007
++++ libexif-0.6.16.os2/configure.ac	Wed May  3 13:37:00 2008
+@@ -1,4 +1,4 @@
+-AC_PREREQ(2.59)
++AC_PREREQ(2.57)
+ AC_INIT([EXIF library], [0.6.16], [libexif-devel@lists.sourceforge.net], [libexif])
+ AC_CONFIG_SRCDIR([libexif/exif-data.h])
+ AC_CONFIG_HEADERS([config.h])
+@@ -23,6 +23,18 @@
+ GP_CHECK_SHELL_ENVIRONMENT
+ GP_CONFIG_MSG([Build])
+ GP_CONFIG_MSG([Source code location],[${srcdir}])
++AC_CANONICAL_HOST
++AC_MSG_CHECKING([for OS/2])
++case $host in
++  *-*-os2*)
++    os_os2=yes
++    ;;
++  *)
++    os_os2=no
++    ;;
++esac
++AC_MSG_RESULT([$os_os2])
++AM_CONDITIONAL(OS_OS2, [test "$os_os2" = "yes"])
+ 
+ dnl ---------------------------------------------------------------------------
+ dnl Advanced information about versioning:
+@@ -57,7 +69,11 @@
+ AC_SUBST([LIBEXIF_REVISION])
+ AC_SUBST([LIBEXIF_CURRENT])
+ AC_SUBST([LIBEXIF_CURRENT_MIN],[`expr $LIBEXIF_CURRENT - $LIBEXIF_AGE`])
++if test "$os_os2" = "yes"; then
++LIBEXIF_VERSION_INFO=`expr $LIBEXIF_CURRENT + $LIBEXIF_REVISION`" $LIBEXIF_AGE $LIBEXIF_REVISION"
++else
+ LIBEXIF_VERSION_INFO="$LIBEXIF_CURRENT:$LIBEXIF_REVISION:$LIBEXIF_AGE"
++fi
+ AC_SUBST([LIBEXIF_VERSION_INFO])
+ 
+ AC_PROG_CC
+@@ -70,7 +86,9 @@
+ 
+ dnl Create a stdint.h-like file containing size-specific integer definitions
+ dnl that will always be available
++if test "$os_os2" = "no"; then
+ AX_NEED_STDINT_H([libexif/_stdint.h])
++fi
+ 
+ 
+ dnl ------------------------------------------------------------------------
+diff -bruN -x configure -x ltmain.sh -x aclocal.m4 -x config.guess -x config.sub -x Makefile.in libexif-0.6.16/libexif/canon/mnote-canon-tag.c libexif-0.6.16.os2/libexif/canon/mnote-canon-tag.c
+--- libexif-0.6.16/libexif/canon/mnote-canon-tag.c	Wed May  9 08:15:24 2007
++++ libexif-0.6.16.os2/libexif/canon/mnote-canon-tag.c	Wed May  3 10:06:52 2008
+@@ -116,6 +116,11 @@
+ 	{0, 0, NULL}
+ };
+ 
++#ifdef __EMX__
++extern char *
++__XOS2RedirRoot(char *fname);
++#endif
++
+ const char *
+ mnote_canon_tag_get_name (MnoteCanonTag t)
+ {
+@@ -150,7 +155,11 @@
+ {
+ 	unsigned int i;
+ 
++#ifndef __EMX__
+ 	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR); 
++#else
++	bindtextdomain (GETTEXT_PACKAGE, __XOS2RedirRoot (LOCALEDIR)); 
++#endif
+ 	for (i = 0; i < sizeof (table) / sizeof (table[0]); i++)
+ 		if (table[i].tag == t) return (_(table[i].title));
+ 	return NULL;
+@@ -180,7 +189,11 @@
+ {
+ 	unsigned int i;
+ 
++#ifndef __EMX__
+ 	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
++#else
++	bindtextdomain (GETTEXT_PACKAGE, __XOS2RedirRoot (LOCALEDIR));
++#endif
+ 	for (i = 0; i < sizeof (table) / sizeof (table[0]); i++)
+ 		if (table[i].tag == t) return (_(table[i].description));
+ 	return NULL;
+diff -bruN -x configure -x ltmain.sh -x aclocal.m4 -x config.guess -x config.sub -x Makefile.in libexif-0.6.16/libexif/exif-entry.c libexif-0.6.16.os2/libexif/exif-entry.c
+--- libexif-0.6.16/libexif/exif-entry.c	Tue May 15 20:23:28 2007
++++ libexif-0.6.16.os2/libexif/exif-entry.c	Wed May  3 13:26:44 2008
+@@ -538,6 +538,12 @@
+   {0, }
+ };
+ 
++#ifdef __EMX__
++#define M_PI 3.14159265358979323846
++extern char *
++__XOS2RedirRoot (char *fname);
++#endif
++
+ const char *
+ exif_entry_get_value (ExifEntry *e, char *val, unsigned int maxlen)
+ {
+@@ -574,7 +580,11 @@
+ 	 * 
+ 	 * bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
+ 	 */
++#ifndef __EMX__
+ 	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
++#else
++	bindtextdomain (GETTEXT_PACKAGE, __XOS2RedirRoot (LOCALEDIR));
++#endif
+ 
+ 	/* We need the byte order */
+ 	if (!e || !e->parent || !e->parent->parent)
+diff -bruN -x configure -x ltmain.sh -x aclocal.m4 -x config.guess -x config.sub -x Makefile.in libexif-0.6.16/libexif/exif-format.c libexif-0.6.16.os2/libexif/exif-format.c
+--- libexif-0.6.16/libexif/exif-format.c	Mon May  2 21:29:14 2005
++++ libexif-0.6.16.os2/libexif/exif-format.c	Wed May  3 10:15:08 2008
+@@ -45,6 +45,11 @@
+         {0, NULL, 0}
+ };
+ 
++#ifdef __EMX__
++extern char *
++__XOS2RedirRoot (char *fname);
++#endif
++
+ const char *
+ exif_format_get_name (ExifFormat format)
+ {
+@@ -57,7 +62,11 @@
+ 	 * 
+ 	 * bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
+ 	 */
++#ifndef __EMX__
+ 	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
++#else
++	bindtextdomain (GETTEXT_PACKAGE, __XOS2RedirRoot (LOCALEDIR));
++#endif
+ 
+ 	for (i = 0; ExifFormatTable[i].name; i++)
+ 		if (ExifFormatTable[i].format == format)
+diff -bruN -x configure -x ltmain.sh -x aclocal.m4 -x config.guess -x config.sub -x Makefile.in libexif-0.6.16/libexif/exif-tag.c libexif-0.6.16.os2/libexif/exif-tag.c
+--- libexif-0.6.16/libexif/exif-tag.c	Sun May 20 23:45:02 2007
++++ libexif-0.6.16.os2/libexif/exif-tag.c	Wed May  3 10:19:08 2008
+@@ -723,6 +723,11 @@
+ 	return ExifTagTable[i].name;
+ }
+ 
++#ifdef __EMX__
++extern char *
++__XOS2RedirRoot (char *fname);
++#endif
++
+ const char *
+ exif_tag_get_title_in_ifd (ExifTag tag, ExifIfd ifd)
+ {
+@@ -735,7 +740,11 @@
+ 	 * 
+ 	 * bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
+ 	 */
++#ifndef __EMX__
+ 	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
++#else
++	bindtextdomain (GETTEXT_PACKAGE, __XOS2RedirRoot (LOCALEDIR));
++#endif
+ 
+ 	if (ifd >= EXIF_IFD_COUNT) return NULL;
+ 	for (i = 0; ExifTagTable[i].title; i++)
+@@ -754,7 +763,11 @@
+ 	 * 
+ 	 * bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
+ 	 */
++#ifndef __EMX__
+ 	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
++#else
++	bindtextdomain (GETTEXT_PACKAGE, __XOS2RedirRoot (LOCALEDIR));
++#endif
+ 
+ 	if (ifd >= EXIF_IFD_COUNT) return NULL;
+ 	for (i = 0; ExifTagTable[i].description; i++)
+diff -bruN -x configure -x ltmain.sh -x aclocal.m4 -x config.guess -x config.sub -x Makefile.in libexif-0.6.16/libexif/exif-utils.h libexif-0.6.16.os2/libexif/exif-utils.h
+--- libexif-0.6.16/libexif/exif-utils.h	Tue May 15 20:23:28 2007
++++ libexif-0.6.16.os2/libexif/exif-utils.h	Wed May  3 09:54:06 2008
+@@ -27,7 +27,14 @@
+ 
+ #include <libexif/exif-byte-order.h>
+ #include <libexif/exif-format.h>
++#ifndef __EMX__
+ #include <libexif/_stdint.h>
++#else
++typedef unsigned short int uint16_t;
++typedef short int16_t;
++typedef unsigned long int uint32_t;
++typedef long int int32_t;
++#endif
+ 
+ 
+ /* If these definitions don't work for you, please let us fix the 
+diff -bruN -x configure -x ltmain.sh -x aclocal.m4 -x config.guess -x config.sub -x Makefile.in libexif-0.6.16/libexif/Makefile.am libexif-0.6.16.os2/libexif/Makefile.am
+--- libexif-0.6.16/libexif/Makefile.am	Thu May 17 16:44:14 2007
++++ libexif-0.6.16.os2/libexif/Makefile.am	Wed May  3 10:22:16 2008
+@@ -45,6 +45,12 @@
+ pentax/libmnote-pentax.la:
+ 	cd pentax && $(MAKE) libmnote-pentax.la
+ 
++if !OS_OS2
++	stdint_h = _stdint.h
++else
++	stdint_h =
++endif
++
+ libexifincludedir = $(includedir)/libexif
+ libexifinclude_HEADERS = 	\
+ 	exif-byte-order.h	\
+@@ -60,9 +66,9 @@
+ 	exif-mnote-data.h	\
+ 	exif-tag.h		\
+ 	exif-utils.h		\
+-	_stdint.h
++	$(stdint_h)
+ 
+ EXTRA_DIST = libexif.sym
+ 
+-DISTCLEANFILES = _stdint.h
++DISTCLEANFILES = $(stdint_h)
+ 
+diff -bruN -x configure -x ltmain.sh -x aclocal.m4 -x config.guess -x config.sub -x Makefile.in libexif-0.6.16/libexif/olympus/mnote-olympus-tag.c libexif-0.6.16.os2/libexif/olympus/mnote-olympus-tag.c
+--- libexif-0.6.16/libexif/olympus/mnote-olympus-tag.c	Fri May 11 08:22:44 2007
++++ libexif-0.6.16.os2/libexif/olympus/mnote-olympus-tag.c	Wed May  3 10:27:08 2008
+@@ -132,12 +132,21 @@
+ 	return NULL;
+ }
+ 
++#ifdef __EMX__
++extern char *
++__XOS2RedirRoot(char *fname);
++#endif
++
+ const char *
+ mnote_olympus_tag_get_title (MnoteOlympusTag t)
+ {
+ 	unsigned int i;
+ 
++#ifndef __EMX__
+ 	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
++#else
++	bindtextdomain (GETTEXT_PACKAGE, __XOS2RedirRoot (LOCALEDIR));
++#endif
+ 	for (i = 0; i < sizeof (table) / sizeof (table[0]); i++)
+ 		if (table[i].tag == t) return (_(table[i].title));
+ 	return NULL;
+@@ -148,7 +157,11 @@
+ {
+ 	unsigned int i;
+ 
++#ifndef __EMX__
+ 	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
++#else
++	bindtextdomain (GETTEXT_PACKAGE, __XOS2RedirRoot (LOCALEDIR));
++#endif
+ 	for (i = 0; i < sizeof (table) / sizeof (table[0]); i++)
+ 		if (table[i].tag == t) return (_(table[i].description));
+ 	return NULL;
+diff -bruN -x configure -x ltmain.sh -x aclocal.m4 -x config.guess -x config.sub -x Makefile.in libexif-0.6.16/libexif/pentax/mnote-pentax-tag.c libexif-0.6.16.os2/libexif/pentax/mnote-pentax-tag.c
+--- libexif-0.6.16/libexif/pentax/mnote-pentax-tag.c	Sun May 13 21:21:48 2007
++++ libexif-0.6.16.os2/libexif/pentax/mnote-pentax-tag.c	Wed May  3 13:25:38 2008
+@@ -83,12 +83,21 @@
+ 	return NULL;
+ }
+ 
++#ifdef __EMX__
++extern char *
++__XOS2RedirRoot(char *fname);
++#endif
++
+ const char *
+ mnote_pentax_tag_get_title (MnotePentaxTag t)
+ {
+ 	unsigned int i;
+ 
++#ifndef __EMX__
+ 	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
++#else
++	bindtextdomain (GETTEXT_PACKAGE, __XOS2RedirRoot (LOCALEDIR));
++#endif
+ 	for (i = 0; i < sizeof (table) / sizeof (table[0]); i++)
+ 		if (table[i].tag == t) return (_(table[i].title));
+ 	return NULL;
+@@ -99,7 +108,11 @@
+ {
+ 	unsigned int i;
+ 
++#ifndef __EMX__
+ 	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
++#else
++	bindtextdomain (GETTEXT_PACKAGE, __XOS2RedirRoot (LOCALEDIR));
++#endif
+ 	for (i = 0; i < sizeof (table) / sizeof (table[0]); i++)
+ 		if (table[i].tag == t) return (_(table[i].description));
+ 	return NULL;
+diff -bruN -x configure -x ltmain.sh -x aclocal.m4 -x config.guess -x config.sub -x Makefile.in libexif-0.6.16/setenv.cmd libexif-0.6.16.os2/setenv.cmd
+--- libexif-0.6.16/setenv.cmd	Thu Jan  1 00:00:00 1970
++++ libexif-0.6.16.os2/setenv.cmd	Wed May  3 09:54:06 2008
+@@ -0,0 +1,9 @@
++setlocal
++call ..\setenv302.cmd
++PATH=e:\usr\bin;e:\Perl\bin;%PATH%e:\usr\X11R6\bin;
++set BEGINLIBPATH=%BEGINLIBPATH%e:\usr\lib;
++set PERLLIB_PREFIX=L:/Perl/lib;E:/Perl/lib
++set LANG=C
++set ETC=
++bash.exe
++endlocal
